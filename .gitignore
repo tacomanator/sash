@@ -1,0 +1,5 @@
+.build/
+*.app/
+*.zip
+.swiftpm/
+.DS_Store
