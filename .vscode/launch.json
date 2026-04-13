@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:sash}",
+      "name": "Debug Sash",
+      "target": "Sash",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Sash"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:sash}",
+      "name": "Release Sash",
+      "target": "Sash",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Sash"
+    }
+  ]
+}

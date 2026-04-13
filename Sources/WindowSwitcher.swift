@@ -1,10 +1,15 @@
 import AppKit
 import ApplicationServices
 
+enum CycleDirection {
+    case forward
+    case reverse
+}
+
 final class WindowSwitcher {
     static let shared = WindowSwitcher()
 
-    func cycleWindows() {
+    func cycleWindows(direction: CycleDirection = .forward) {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else { return }
 
         // Don't cycle our own windows
@@ -40,16 +45,27 @@ final class WindowSwitcher {
         guard visibleWindows.count > 1 else { return }
 
         // The AX windows list is ordered front-to-back.
-        // To cycle all windows (not just swap the top two), raise every
-        // window behind the frontmost from back to front. This rotates
-        // the entire stack: [A,B,C] → [B,C,A], [B,C,A] → [C,A,B], etc.
-        for i in stride(from: visibleWindows.count - 1, through: 1, by: -1) {
-            AXUIElementPerformAction(visibleWindows[i], kAXRaiseAction as CFString)
+        switch direction {
+        case .forward:
+            // Raise every window behind the frontmost from back to front.
+            // This rotates the stack: [A,B,C] → [B,C,A], [B,C,A] → [C,A,B], etc.
+            for i in stride(from: visibleWindows.count - 1, through: 1, by: -1) {
+                AXUIElementPerformAction(visibleWindows[i], kAXRaiseAction as CFString)
+            }
+            AXUIElementSetAttributeValue(
+                visibleWindows[1],
+                kAXMainAttribute as CFString,
+                kCFBooleanTrue
+            )
+        case .reverse:
+            // Raise only the backmost window to front.
+            // This rotates the opposite direction: [A,B,C] → [C,A,B].
+            AXUIElementPerformAction(visibleWindows.last!, kAXRaiseAction as CFString)
+            AXUIElementSetAttributeValue(
+                visibleWindows.last!,
+                kAXMainAttribute as CFString,
+                kCFBooleanTrue
+            )
         }
-        AXUIElementSetAttributeValue(
-            visibleWindows[1],
-            kAXMainAttribute as CFString,
-            kCFBooleanTrue
-        )
     }
 }

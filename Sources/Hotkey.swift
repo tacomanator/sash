@@ -1,7 +1,7 @@
 import AppKit
 import Carbon.HIToolbox
 
-struct KeyShortcut: Codable, Equatable {
+struct Hotkey: Codable, Equatable {
     let keyCode: UInt32
     let modifierRawValue: UInt
 
@@ -111,28 +111,33 @@ struct KeyShortcut: Codable, Equatable {
 
     // MARK: - Persistence
 
-    private static let defaultsKey = "savedShortcut"
+    private static func defaultsKey(for direction: CycleDirection) -> String {
+        switch direction {
+        case .forward: return "forwardHotkey"
+        case .reverse: return "reverseHotkey"
+        }
+    }
 
     // Cmd+Shift+2 (@)
-    static let defaultShortcut = KeyShortcut(
+    static let defaultHotkey = Hotkey(
         keyCode: UInt16(kVK_ANSI_2),
         modifiers: [.command, .shift]
     )
 
-    static func load() -> KeyShortcut {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey),
-              let shortcut = try? JSONDecoder().decode(KeyShortcut.self, from: data)
-        else { return defaultShortcut }
-        return shortcut
+    static func load(for direction: CycleDirection) -> Hotkey? {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey(for: direction)),
+              let hotkey = try? JSONDecoder().decode(Hotkey.self, from: data)
+        else { return nil }
+        return hotkey
     }
 
-    func save() {
+    func save(for direction: CycleDirection) {
         if let data = try? JSONEncoder().encode(self) {
-            UserDefaults.standard.set(data, forKey: Self.defaultsKey)
+            UserDefaults.standard.set(data, forKey: Self.defaultsKey(for: direction))
         }
     }
 
-    static func clear() {
-        UserDefaults.standard.removeObject(forKey: defaultsKey)
+    static func clear(for direction: CycleDirection) {
+        UserDefaults.standard.removeObject(forKey: defaultsKey(for: direction))
     }
 }

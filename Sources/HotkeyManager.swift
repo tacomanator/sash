@@ -4,7 +4,8 @@ import AppKit
 final class HotkeyManager {
     static let shared = HotkeyManager()
 
-    private var hotKeyRef: EventHotKeyRef?
+    private var forwardHotKeyRef: EventHotKeyRef?
+    private var reverseHotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
 
     private init() {
@@ -20,9 +21,23 @@ final class HotkeyManager {
         InstallEventHandler(
             GetApplicationEventTarget(),
             { _, event, _ -> OSStatus in
-                guard event != nil else { return OSStatus(eventNotHandledErr) }
+                guard let event = event else { return OSStatus(eventNotHandledErr) }
+
+                var hotKeyID = EventHotKeyID()
+                let status = GetEventParameter(
+                    event,
+                    EventParamName(kEventParamDirectObject),
+                    EventParamType(typeEventHotKeyID),
+                    nil,
+                    MemoryLayout<EventHotKeyID>.size,
+                    nil,
+                    &hotKeyID
+                )
+                guard status == noErr else { return OSStatus(eventNotHandledErr) }
+
+                let direction: CycleDirection = hotKeyID.id == 2 ? .reverse : .forward
                 DispatchQueue.main.async {
-                    WindowSwitcher.shared.cycleWindows()
+                    WindowSwitcher.shared.cycleWindows(direction: direction)
                 }
                 return noErr
             },
@@ -33,29 +48,44 @@ final class HotkeyManager {
         )
     }
 
-    func register(_ shortcut: KeyShortcut) {
-        unregister()
+    func register(_ hotkey: Hotkey, for direction: CycleDirection = .forward) {
+        unregister(direction)
 
-        let hotKeyID = EventHotKeyID(signature: OSType(0x5357_4348), id: 1) // "SWCH"
+        let id: UInt32 = direction == .forward ? 1 : 2
+        let hotKeyID = EventHotKeyID(signature: OSType(0x5357_4348), id: id) // "SWCH"
 
+        var ref: EventHotKeyRef?
         let status = RegisterEventHotKey(
-            shortcut.keyCode,
-            shortcut.carbonModifiers,
+            hotkey.keyCode,
+            hotkey.carbonModifiers,
             hotKeyID,
             GetApplicationEventTarget(),
             0,
-            &hotKeyRef
+            &ref
         )
 
         if status != noErr {
             print("[Sash] Failed to register hotkey: \(status)")
+        } else {
+            switch direction {
+            case .forward: forwardHotKeyRef = ref
+            case .reverse: reverseHotKeyRef = ref
+            }
         }
     }
 
-    func unregister() {
-        if let ref = hotKeyRef {
-            UnregisterEventHotKey(ref)
-            hotKeyRef = nil
+    func unregister(_ direction: CycleDirection = .forward) {
+        switch direction {
+        case .forward:
+            if let ref = forwardHotKeyRef {
+                UnregisterEventHotKey(ref)
+                forwardHotKeyRef = nil
+            }
+        case .reverse:
+            if let ref = reverseHotKeyRef {
+                UnregisterEventHotKey(ref)
+                reverseHotKeyRef = nil
+            }
         }
     }
 }

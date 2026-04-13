@@ -1,8 +1,9 @@
 import SwiftUI
 import AppKit
 
-struct ShortcutRecorder: View {
-    @Binding var shortcut: KeyShortcut?
+struct HotkeyRecorder: View {
+    @Binding var hotkey: Hotkey?
+    var direction: CycleDirection = .forward
     @State private var isRecording = false
     @State private var monitor: Any?
 
@@ -23,8 +24,8 @@ struct ShortcutRecorder: View {
                     .frame(minWidth: 120)
             }
 
-            if shortcut != nil && !isRecording {
-                Button(action: clearShortcut) {
+            if hotkey != nil && !isRecording {
+                Button(action: clearHotkey) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.secondary)
                 }
@@ -35,8 +36,8 @@ struct ShortcutRecorder: View {
     }
 
     private var buttonLabel: String {
-        if isRecording { return "Type shortcut…" }
-        return shortcut?.displayString ?? "Record Shortcut"
+        if isRecording { return "Type hotkey…" }
+        return hotkey?.displayString ?? "Record Hotkey"
     }
 
     private func toggleRecording() {
@@ -45,7 +46,7 @@ struct ShortcutRecorder: View {
 
     private func startRecording() {
         isRecording = true
-        HotkeyManager.shared.unregister()
+        HotkeyManager.shared.unregister(direction)
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard !Self.modifierKeyCodes.contains(event.keyCode) else { return event }
 
@@ -55,10 +56,10 @@ struct ShortcutRecorder: View {
                 return event
             }
 
-            let newShortcut = KeyShortcut(keyCode: event.keyCode, modifiers: event.modifierFlags)
-            shortcut = newShortcut
-            newShortcut.save()
-            HotkeyManager.shared.register(newShortcut)
+            let newHotkey = Hotkey(keyCode: event.keyCode, modifiers: event.modifierFlags)
+            hotkey = newHotkey
+            newHotkey.save(for: direction)
+            HotkeyManager.shared.register(newHotkey, for: direction)
             stopRecording()
             return nil // consume the event
         }
@@ -70,15 +71,15 @@ struct ShortcutRecorder: View {
         }
         monitor = nil
         isRecording = false
-        // Re-register current shortcut if recording was cancelled
-        if let shortcut = shortcut {
-            HotkeyManager.shared.register(shortcut)
+        // Re-register current hotkey if recording was cancelled
+        if let hotkey = hotkey {
+            HotkeyManager.shared.register(hotkey, for: direction)
         }
     }
 
-    private func clearShortcut() {
-        HotkeyManager.shared.unregister()
-        shortcut = nil
-        KeyShortcut.clear()
+    private func clearHotkey() {
+        HotkeyManager.shared.unregister(direction)
+        hotkey = nil
+        Hotkey.clear(for: direction)
     }
 }

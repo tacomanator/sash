@@ -2,7 +2,8 @@ import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var shortcut: KeyShortcut? = KeyShortcut.load()
+    @State private var hotkey: Hotkey? = Hotkey.load(for: .forward) ?? Hotkey.defaultHotkey
+    @State private var reverseHotkey: Hotkey? = Hotkey.load(for: .reverse)
     @State private var hasAccessibility = AccessibilityHelper.checkPermission()
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
@@ -12,8 +13,15 @@ struct SettingsView: View {
                 .font(.headline)
 
             HStack {
-                Text("Shortcut:")
-                ShortcutRecorder(shortcut: $shortcut)
+                Text("Hotkey:")
+                    .frame(width: 60, alignment: .trailing)
+                HotkeyRecorder(hotkey: $hotkey, direction: .forward)
+            }
+
+            HStack {
+                Text("Reverse:")
+                    .frame(width: 60, alignment: .trailing)
+                HotkeyRecorder(hotkey: $reverseHotkey, direction: .reverse)
             }
 
             if !hasAccessibility {

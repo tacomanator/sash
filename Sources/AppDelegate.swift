@@ -6,7 +6,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AccessibilityHelper.requestPermission()
         }
 
-        // Register saved (or default) shortcut
-        HotkeyManager.shared.register(KeyShortcut.load())
+        // Register saved (or default) forward hotkey
+        HotkeyManager.shared.register(
+            Hotkey.load(for: .forward) ?? Hotkey.defaultHotkey
+        )
+
+        // Register reverse hotkey if configured
+        if let reverse = Hotkey.load(for: .reverse) {
+            HotkeyManager.shared.register(reverse, for: .reverse)
+        }
     }
 }
